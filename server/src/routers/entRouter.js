@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
-const secretKey = "Login-by-entr";
+const secretKey = require('../config/sKey')
+const verifyToken = require('../middlewaer/vetToken')
 
 function entRouter(app, connection) {
   //login
@@ -16,11 +17,11 @@ function entRouter(app, connection) {
         if (result.length === 0) {
           res.status(401).json({ message: "Invalid credentials" });
         } else {
-          const admin = result[0];
-          bcrypt.compare(password, admin.password, (err, isMatch) => {
+          const entrepreneur = result[0];
+          bcrypt.compare(password, entrepreneur.password, (err, isMatch) => {
             if (err) throw err;
             if (isMatch) {
-              const token = jwt.sign({ usersname: admin.usersname }, secretKey, {
+              const token = jwt.sign({ id: entrepreneur.id }, secretKey.secret, {
                 expiresIn: "1h",
               });
               res.json({ message: "Login successful", token });
@@ -33,19 +34,6 @@ function entRouter(app, connection) {
     );
   });
 
-  //auth
-  app.post("/auth", (req, res) => {
-    try {
-      const token = req.headers.authorization.split(" ")[1];
-      const decoded = jwt.verify(token, secretKey);
-      res.json({ message: "Authentication successful", decoded });
-    } catch (err) {
-      res
-        .status(401)
-        .json({ message: "Authentication failed", error: err.message });
-    }
-  });
-
   // Read all records
   app.get("/entrepreneurs", (req, res) => {
     connection.query("SELECT * FROM entrepreneur", (err, results) => {
@@ -55,19 +43,15 @@ function entRouter(app, connection) {
   });
 
   // Read a single record
-  app.get("/entrepreneur/:id", (req, res) => {
-    const entrepreneurId = req.params.id;
+  app.get("/entrepreneur", verifyToken, (req, res) => {
+    const userId = req.userId;
 
     connection.query(
       "SELECT * FROM entrepreneur WHERE id = ?",
-      entrepreneurId,
-      (err, result) => {
+      [userId],
+      (err, results) => {
         if (err) throw err;
-        if (result.length === 0) {
-          res.status(404).json({ message: "Entrepreneur not found" });
-        } else {
-          res.json(result[0]);
-        }
+        res.json(results);
       }
     );
   });

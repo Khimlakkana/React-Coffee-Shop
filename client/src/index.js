@@ -9,6 +9,7 @@ import Register from './components/pages/Register'
 import Login from './components/pages/Login'
 import Promotion from './components/pages/Promotion'
 import ForgotPassword from './components/pages/ForgotPassword'
+import Enter from './components/pages/entrepreneur'
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -19,6 +20,8 @@ root.render(
       <Route path='/Login' element={<Login />} />
       <Route path='/Promotion' element={<Promotion />} />
       <Route path='/ForgotPassword' element={<ForgotPassword />} />
+      <Route path='/Enter' element={<Enter />} />
+
 
     </Routes>
   </BrowserRouter>
