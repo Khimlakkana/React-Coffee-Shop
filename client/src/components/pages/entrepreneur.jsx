@@ -8,15 +8,18 @@ import CameraIcon from "@mui/icons-material/PhotoCamera";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import Box from "@mui/material/Box";
-import Link from "@mui/material/Link";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Grid from "@mui/material/Grid"; // เพิ่มอิมพอร์ตสำหรับ Grid
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField"; // เพิ่ม TextField
 
 const defaultTheme = createTheme();
 
 export default function Album() {
   const [account, setAccount] = useState([]);
+  const [isEditing, setIsEditing] = useState(false); // สถานะโหมดแก้ไข
+  const [editedData, setEditedData] = useState({}); // ข้อมูลที่ใช้สำหรับการแก้ไข
 
   const fetchData = async () => {
     try {
@@ -38,6 +41,42 @@ export default function Album() {
     fetchData();
   }, []);
 
+  function handleMapClick() {
+    console.log("แผนที่ถูกคลิก");
+  }
+
+  function handleEditClick() {
+    // เปิดโหมดแก้ไขข้อมูล
+    setIsEditing(true);
+    // ตั้งค่าข้อมูลที่จะแก้ไขโดยใช้ข้อมูลของ account ปัจจุบัน
+    setEditedData({ ...account, password: "" });
+  }
+
+  function handleSaveClick() {
+    const token = localStorage.getItem("token");
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
+    if (editedData.password === "") {
+      editedData.password = account.password;
+    }
+    axios
+      .put("http://localhost:3000/EditEntrepreneur", editedData, { headers })
+      .then((response) => {
+        if (response.status === 200) {
+          console.log("ข้อมูลถูกอัปเดตเรียบร้อย");
+          setIsEditing(false);
+          fetchData();
+
+        } else if (response.status === 404) {
+          console.error("ไม่พบผู้ประกอบการ");
+        }
+      })
+      .catch((error) => {
+        console.error("เกิดข้อผิดพลาดในการอัปเดตข้อมูล:", error);
+      });
+  }
+
   return (
     <ThemeProvider theme={defaultTheme}>
       <CssBaseline />
@@ -57,112 +96,211 @@ export default function Album() {
             pb: 6,
           }}
         >
-          <Container maxWidth="sm">
-            <Card>
-              <CardContent style={{ textAlign: "left" }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography
-                      component="h1"
-                      variant="h5"
-                      color="text.primary"
-                      gutterBottom
-                    >
-                      Shop Name
-                    </Typography>
-                    <Typography
-                      component="h1"
-                      variant="h5"
-                      color="text.secondary"
-                    >
-                      {account.shopname}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography
-                      component="h1"
-                      variant="h5"
-                      color="text.primary"
-                      gutterBottom
-                    >
-                      Detail
-                    </Typography>
-                    <Typography
-                      component="h1"
-                      variant="h5"
-                      color="text.secondary"
-                    >
-                      {account.detail}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography
-                      component="h1"
-                      variant="h5"
-                      color="text.primary"
-                      gutterBottom
-                    >
-                      Province
-                    </Typography>
-                    <Typography
-                      component="h1"
-                      variant="h5"
-                      color="text.secondary"
-                    >
-                      {account.province}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography
-                      component="h1"
-                      variant="h5"
-                      color="text.primary"
-                      gutterBottom
-                    >
-                      Usersname
-                    </Typography>
-                    <Typography
-                      component="h1"
-                      variant="h5"
-                      color="text.secondary"
-                    >
-                      {account.usersname}
-                    </Typography>
-                  </Grid><Grid item xs={12} sm={6}>
-                    <Typography
-                      component="h1"
-                      variant="h5"
-                      color="text.primary"
-                      gutterBottom
-                    >
-                      Map
-                    </Typography>
-                    <div
-                      style={{
-                        position: "relative",
-                        paddingBottom: "75%", // สัดส่วนของแผนที่
-                        height: 0,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <iframe
-                        title="Google Map"
-                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3820.6336779969315!2d100.19645547515051!3d16.745120084036667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30dfbe9bcfe26897%3A0xd643532d92c6aee8!2zQ29mZmVlIFNwYWNlIOC4quC4suC4guC4suC4m-C4o-C4sOC4leC4uSA0!5e0!3m2!1sth!2sth!4v1694017726141!5m2!1sth!2sth"
-                        width="100%"
-                        height="100%"
-                        style={{ position: "absolute", top: 0, left: 0 }}
-                        allowfullscreen=""
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade"
-                      ></iframe>
-                    </div>
-                  </Grid>
+          <Grid container spacing={2}>
+            <Container maxWidth="sm">
+              <Card>
+                <CardContent style={{ textAlign: "left" }}>
+                  <Grid container spacing={2}>
+                    {/* ชื่อร้าน */}
+                    <Grid item xs={12} sm={6}>
+                      <Typography
+                        component="h1"
+                        variant="h5"
+                        color="text.primary"
+                        gutterBottom
+                      >
+                        Shop Name
+                      </Typography>
+                      {isEditing ? (
+                        <TextField
+                          label="Shop Name"
+                          variant="outlined"
+                          value={editedData.shopname}
+                          onChange={(e) =>
+                            setEditedData({
+                              ...editedData,
+                              shopname: e.target.value,
+                            })
+                          }
+                        />
+                      ) : (
+                        <Typography
+                          component="h1"
+                          variant="h5"
+                          color="text.secondary"
+                        >
+                          {account.shopname}
+                        </Typography>
+                      )}
+                    </Grid>
 
-                  
-                </Grid>
-              </CardContent>
-            </Card>
-          </Container>
+                    {/* จังหวัด */}
+                    <Grid item xs={12} sm={6}>
+                      <Typography
+                        component="h1"
+                        variant="h5"
+                        color="text.primary"
+                        gutterBottom
+                      >
+                        Province
+                      </Typography>
+                      {isEditing ? (
+                        <TextField
+                          label="Province"
+                          variant="outlined"
+                          value={editedData.province}
+                          onChange={(e) =>
+                            setEditedData({
+                              ...editedData,
+                              province: e.target.value,
+                            })
+                          }
+                        />
+                      ) : (
+                        <Typography
+                          component="h1"
+                          variant="h5"
+                          color="text.secondary"
+                        >
+                          {account.province}
+                        </Typography>
+                      )}
+                    </Grid>
+
+                    {/* Detail */}
+                    <Grid item xs={12} sm={6}>
+                      <Typography
+                        component="h1"
+                        variant="h5"
+                        color="text.primary"
+                        gutterBottom
+                      >
+                        Detail
+                      </Typography>
+                      {isEditing ? (
+                        <TextField
+                          label="Detail"
+                          variant="outlined"
+                          value={editedData.detail}
+                          onChange={(e) =>
+                            setEditedData({
+                              ...editedData,
+                              detail: e.target.value,
+                            })
+                          }
+                        />
+                      ) : (
+                        <Typography
+                          component="h1"
+                          variant="h5"
+                          color="text.secondary"
+                        >
+                          {account.detail}
+                        </Typography>
+                      )}
+                    </Grid>
+
+                    {/* username */}
+                    <Grid item xs={12} sm={6}>
+                      <Typography
+                        component="h1"
+                        variant="h5"
+                        color="text.primary"
+                        gutterBottom
+                      >
+                        Usersname
+                      </Typography>
+                      {isEditing ? (
+                        <TextField
+                          label="Usersname"
+                          variant="outlined"
+                          value={editedData.usersname}
+                          onChange={(e) =>
+                            setEditedData({
+                              ...editedData,
+                              usersname: e.target.value,
+                            })
+                          }
+                        />
+                      ) : (
+                        <Typography
+                          component="h1"
+                          variant="h5"
+                          color="text.secondary"
+                        >
+                          {account.usersname}
+                        </Typography>
+                      )}
+                    </Grid>
+
+                    {/* location */}
+                    <Grid item xs={12} sm={6}>
+                      <Typography
+                        component="h1"
+                        variant="h5"
+                        color="text.primary"
+                        gutterBottom
+                      >
+                        location
+                      </Typography>
+                      {isEditing ? (
+                        <TextField
+                          label="location"
+                          variant="outlined"
+                          value={editedData.location}
+                          onChange={(e) =>
+                            setEditedData({
+                              ...editedData,
+                              location: e.target.value,
+                            })
+                          }
+                        />
+                      ) : (
+                        <Typography
+                          component="h1"
+                          variant="h5"
+                          color="text.secondary"
+                        >
+                          {account.location}
+                        </Typography>
+                      )}
+                    </Grid>
+
+                    {/* เพิ่มฟิลด์อื่น ๆ ในฟอร์มที่คุณต้องการแก้ไข */}
+                    <Grid item xs={12}>
+                      {isEditing ? (
+                        <div>
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={handleSaveClick}
+                          >
+                            บันทึก
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="secondary"
+                            onClick={() => setIsEditing(false)}
+                          >
+                            ยกเลิก
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          onClick={handleEditClick}
+                        >
+                          แก้ไข
+                        </Button>
+                      )}
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Container>
+            {/* ตำแหน่งการ์ดอื่น ๆ ที่คุณต้องการให้มีปุ่มแก้ไข */}
+          </Grid>
         </Box>
       </main>
     </ThemeProvider>

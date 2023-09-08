@@ -89,20 +89,28 @@ function entRouter(app, connection) {
 
 
   // Update a record
-  app.put("/entrepreneur/:id", (req, res) => {
-    const entrepreneurId = req.params.id;
+  app.put("/EditEntrepreneur", verifyToken, (req, res) => {
+    const entrepreneurId = req.userId;
     const { shopname, detail, province, location, usersname, password } = req.body;
     const entrepreneur = { shopname, detail, province, location, usersname, password };
 
     connection.query(
       "UPDATE entrepreneur SET ? WHERE id = ?",
       [entrepreneur, entrepreneurId],
-      (err) => {
-        if (err) throw err;
+      (err, results) => {
+        if (err) {
+          console.error("Database Error:", err);
+          return res.status(500).json({ message: "Database error" });
+        }
+        if (results.affectedRows === 0) {
+          return res.status(404).json({ message: "Entrepreneur not found" });
+        }
         res.json({ message: "Entrepreneur updated successfully" });
       }
     );
+    
   });
+
 
   // Delete a record
   app.delete("/entrepreneur/:id", (req, res) => {
