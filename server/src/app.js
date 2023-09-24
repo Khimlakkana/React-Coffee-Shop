@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 
 const dbConfig = require("./config/database");
 const entRouter = require("./routers/entRouter")
-
+const promotionRouter = require("./routers/promotionRouter")
 
 
 const app = express();
@@ -26,9 +26,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 entRouter(app, connection);
-
-
-
+promotionRouter(app, connection);
 
 // Start the server
 app.listen(port, () => {

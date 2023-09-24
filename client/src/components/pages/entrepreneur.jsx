@@ -12,14 +12,21 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Grid from "@mui/material/Grid";
 import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField"; // เพิ่ม TextField
+import TextField from "@mui/material/TextField";
+import Swal from "sweetalert2";
+import { useNavigate } from 'react-router-dom';
+
 
 const defaultTheme = createTheme();
 
 export default function Album() {
+  const navigate = useNavigate();
+
   const [account, setAccount] = useState([]);
-  const [isEditing, setIsEditing] = useState(false); // สถานะโหมดแก้ไข
-  const [editedData, setEditedData] = useState({}); // ข้อมูลที่ใช้สำหรับการแก้ไข
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({});
+  const [promotions, setPromotions] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -32,23 +39,32 @@ export default function Album() {
         headers,
       });
       setAccount(response.data[0]);
+
+      const response2 = await axios.get("http://localhost:3000/promotion", {
+        headers,
+      });
+      setPromotions(response2.data);
     } catch (error) {
       console.error(error);
     }
   };
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      // Token is not available, redirect to the Login page
+      navigate('/Login');
+    }
     fetchData();
-  }, []);
+  }, [navigate]);
 
   function handleMapClick() {
     console.log("แผนที่ถูกคลิก");
   }
 
   function handleEditClick() {
-    // เปิดโหมดแก้ไขข้อมูล
     setIsEditing(true);
-    // ตั้งค่าข้อมูลที่จะแก้ไขโดยใช้ข้อมูลของ account ปัจจุบัน
     setEditedData({ ...account, password: "" });
   }
 
@@ -67,7 +83,6 @@ export default function Album() {
           console.log("ข้อมูลถูกอัปเดตเรียบร้อย");
           setIsEditing(false);
           fetchData();
-
         } else if (response.status === 404) {
           console.error("ไม่พบผู้ประกอบการ");
         }
@@ -76,6 +91,111 @@ export default function Album() {
         console.error("เกิดข้อผิดพลาดในการอัปเดตข้อมูล:", error);
       });
   }
+
+  async function uploadFile() {
+    try {
+      if (!selectedFile) {
+        Swal.fire({
+          title: "โปรดเลือกไฟล์รูปก่อน",
+          icon: "warning",
+        });
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      };
+
+      const formData = new FormData();
+      formData.append("image", selectedFile);
+
+      const response = await axios.post(
+        "http://localhost:3000/upload",
+        formData,
+        {
+          headers,
+        }
+      );
+
+      if (response.status === 200) {
+        Swal.fire({
+          title: "อัปโหลดสำเร็จ",
+          text: "ไฟล์รูปถูกอัปโหลดเรียบร้อย",
+          icon: "success",
+        });
+        // อัปโหลดเสร็จแล้ว ทำการเรียก fetchData() เพื่อรีเฟรชข้อมูล
+        fetchData();
+      } else {
+        Swal.fire({
+          title: "เกิดข้อผิดพลาด",
+          text: "เกิดข้อผิดพลาดในการอัปโหลดไฟล์",
+          icon: "error",
+        });
+      }
+    } catch (error) {
+      Swal.fire({
+        title: "เกิดข้อผิดพลาด",
+        text: `เกิดข้อผิดพลาดในการอัปโหลดไฟล์: ${error.message}`,
+        icon: "error",
+      });
+    }
+  }
+
+  function handleFileChange(event) {
+    const file = event.target.files[0];
+    setSelectedFile(file);
+  }
+
+  // Function to delete a promotion by pro_id
+  function handleDeletePromotion(pro_id) {
+    Swal.fire({
+      title: "ยืนยันการลบ?",
+      text: "คุณแน่ใจหรือไม่ที่ต้องการลบโปรโมชั่นนี้?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "ใช่, ลบ!",
+      cancelButtonText: "ยกเลิก",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        axios
+          .delete(`http://localhost:3000/promotion/${pro_id}`)
+          .then((response) => {
+            if (response.status === 200) {
+              Swal.fire({
+                title: "ลบสำเร็จ!",
+                text: "โปรโมชั่นถูกลบเรียบร้อย",
+                icon: "success",
+              });
+              fetchData();
+            } else if (response.status === 404) {
+              Swal.fire({
+                title: "ไม่พบโปรโมชั่น",
+                text: "ไม่สามารถลบโปรโมชั่นได้",
+                icon: "error",
+              });
+            }
+          })
+          .catch((error) => {
+            Swal.fire({
+              title: "เกิดข้อผิดพลาด",
+              text: `เกิดข้อผิดพลาดในการลบโปรโมชั่น: ${error.message}`,
+              icon: "error",
+            });
+          });
+      }
+    });
+  }
+
+  function handleLogout() {
+    // Clear the token from Local Storage
+    localStorage.removeItem("token");
+    
+    // Redirect to the root URL
+    window.location.href = '/';
+  }
+  
 
   return (
     <ThemeProvider theme={defaultTheme}>
@@ -86,6 +206,9 @@ export default function Album() {
           <Typography variant="h6" color="inherit" noWrap>
             ข้อมูลส่วนตัว
           </Typography>
+          <Button color="inherit" onClick={() => handleLogout()}>
+            Logout
+          </Button>
         </Toolbar>
       </AppBar>
       <main>
@@ -101,7 +224,6 @@ export default function Album() {
               <Card>
                 <CardContent style={{ textAlign: "left" }}>
                   <Grid container spacing={2}>
-                    {/* ชื่อร้าน */}
                     <Grid item xs={12} sm={6}>
                       <Typography
                         component="h1"
@@ -134,7 +256,6 @@ export default function Album() {
                       )}
                     </Grid>
 
-                    {/* จังหวัด */}
                     <Grid item xs={12} sm={6}>
                       <Typography
                         component="h1"
@@ -167,7 +288,6 @@ export default function Album() {
                       )}
                     </Grid>
 
-                    {/* Detail */}
                     <Grid item xs={12} sm={6}>
                       <Typography
                         component="h1"
@@ -200,7 +320,6 @@ export default function Album() {
                       )}
                     </Grid>
 
-                    {/* username */}
                     <Grid item xs={12} sm={6}>
                       <Typography
                         component="h1"
@@ -233,7 +352,6 @@ export default function Album() {
                       )}
                     </Grid>
 
-                    {/* location */}
                     <Grid item xs={12} sm={6}>
                       <Typography
                         component="h1"
@@ -266,7 +384,6 @@ export default function Album() {
                       )}
                     </Grid>
 
-                    {/* เพิ่มฟิลด์อื่น ๆ ในฟอร์มที่คุณต้องการแก้ไข */}
                     <Grid item xs={12}>
                       {isEditing ? (
                         <div>
@@ -299,7 +416,42 @@ export default function Album() {
                 </CardContent>
               </Card>
             </Container>
-            {/* ตำแหน่งการ์ดอื่น ๆ ที่คุณต้องการให้มีปุ่มแก้ไข */}
+
+            <Grid item xs={12}>
+              <input type="file" accept="image/*" onChange={handleFileChange} />
+              <button onClick={uploadFile}>อัพโหลด</button>
+            </Grid>
+
+            {promotions.map((promotion) => (
+              <Grid item xs={12} key={promotion.pro_id}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h5" component="div">
+                      {promotion.pro_id}
+                    </Typography>
+                    <Typography color="text.secondary">
+                      {promotion.createAt}
+                    </Typography>
+                    {promotion.img && (
+                      <img
+                        src={`data:image/jpeg;base64,${promotion.img}`}
+                        alt="รูปภาพโปรโมชั่น"
+                        width="200"
+                      />
+                    )}
+                    <div>
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleDeletePromotion(promotion.pro_id)}
+                      >
+                        ลบ
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
         </Box>
       </main>
